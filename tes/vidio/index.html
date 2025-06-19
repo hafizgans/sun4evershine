@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Full Layar Otomatis (Final Versi Lebih Baik)</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease-out;
+        }
+
+        #loading-text {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        #progress-container {
+            width: 80%;
+            max-width: 400px;
+            height: 15px;
+            background-color: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #f00;
+            border-radius: 5px;
+            transition: width 0.1s linear;
+        }
+
+        video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100vh;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            display: none; /* Tetap disembunyikan sampai loading selesai */
+            z-index: 1;
+        }
+
+        #unmute-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 998;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        }
+
+        #unmute-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #unmute-text {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        #unmute-main-button {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 15px 30px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        #unmute-main-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div id="loading-text">Loading... <span id="loading-percentage">0%</span></div>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <video id="myVideo" loop playsinline> 
+        <source src="video.mp4" type="video/mp4">
+        Maaf, browser Anda tidak mendukung pemutaran video.
+    </video>
+
+    <div id="unmute-overlay">
+        <div id="unmute-text">Cie udah kelar puzzlenya. gimana asik ngga??<br>Kalau asik yuk kita lanjut main game lagi.<br> Tapi kali ini ada syaratnyaa bub. Kamu cukup tekan tombol F11 dulu di laptop kamu<br> nah kalau udah pencet tombol di bawah ini yukkkk</div>
+        <button id="unmute-main-button">PENCET INI BUB</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('myVideo');
+            const loadingScreen = document.getElementById('loading-screen');
+            const loadingText = document.getElementById('loading-text');
+            const loadingPercentage = document.getElementById('loading-percentage');
+            const progressBar = document.getElementById('progress-bar');
+            const unmuteOverlay = document.getElementById('unmute-overlay');
+            const unmuteMainButton = document.getElementById('unmute-main-button');
+            const unmuteText = document.getElementById('unmute-text');
+
+            let isVideoReady = false;
+
+            // Fungsi untuk memperbarui progress bar
+            function updateLoadingProgress() {
+                if (video.duration > 0) {
+                    let buffered = 0;
+                    if (video.buffered.length > 0) {
+                        buffered = (video.buffered.end(0) / video.duration) * 100;
+                    }
+                    const percentage = Math.min(100, Math.round(buffered));
+                    
+                    loadingPercentage.textContent = percentage + '%';
+                    progressBar.style.width = percentage + '%';
+
+                    // Video dianggap siap ketika sudah di-buffer cukup atau 'canplaythrough'
+                    if (percentage >= 95 || video.readyState >= 3 || video.readyState === 4) { // readyState 4 = HAVE_ENOUGH_DATA and ready to play
+                        if (!isVideoReady) {
+                            isVideoReady = true;
+                            hideLoadingScreenAndShowUnmuteOverlay();
+                        }
+                    }
+                }
+            }
+
+            // Fungsi: Sembunyikan loading dan tampilkan overlay unmute
+            function hideLoadingScreenAndShowUnmuteOverlay() {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    video.style.display = 'block'; // Tampilkan video (masih paused, karena 'autoplay' sudah dihapus)
+                    
+                    // Aktifkan overlay blur setelah video ditampilkan
+                    unmuteOverlay.classList.add('active');
+                    
+                    // Pastikan video berada di frame awal saat overlay muncul
+                    video.currentTime = 0; // Atur ke awal video
+                    video.pause(); // Pastikan video dalam keadaan paused
+                    video.muted = true; // Pastikan video muted saat pertama muncul
+
+                }, 1000); // Waktu yang sama dengan transisi CSS loading screen
+            }
+
+            // Event listener untuk tombol utama di overlay
+            unmuteMainButton.addEventListener('click', function() {
+                // Sembunyikan overlay
+                unmuteOverlay.classList.remove('active');
+                setTimeout(() => {
+                    unmuteOverlay.style.display = 'none';
+                }, 500); // Sesuai dengan transisi opacity overlay
+
+                // Aktifkan suara dan putar video
+                video.muted = false; // Ini akan mengaktifkan suara
+                video.play().catch(error => {
+                    console.log("Play (unmuted) after click failed:", error);
+                    alert("Gagal memutar video dengan suara. Silakan coba lagi.");
+                });
+            });
+
+            // Event listener untuk memantau proses pemuatan video
+            video.addEventListener('progress', updateLoadingProgress);
+            video.addEventListener('canplaythrough', updateLoadingProgress);
+            video.addEventListener('loadeddata', updateLoadingProgress); // Ketika data awal/metadata sudah dimuat
+            video.addEventListener('loadedmetadata', updateLoadingProgress); // Pastikan kita punya durasi dll.
+            
+            // Inisialisasi awal
+            // Tambahkan event 'canplay' untuk inisialisasi jika video sudah siap sebelum event listeners dipasang
+            video.addEventListener('canplay', updateLoadingProgress);
+            if (video.readyState >= 2) { // HAVE_CURRENT_DATA atau lebih
+                updateLoadingProgress();
+            }
+        });
+    </script>
+
+</body>
+</html>
