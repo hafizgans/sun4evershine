@@ -3,35 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Full Layar dari YouTube</title>
+    <title>Video Full Layar Otomatis</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; /* Penting: mencegah scrollbar */
             background-color: #000;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            color: #fff;
+            min-height: 100vh; /* Memastikan tinggi body mengisi seluruh viewport */
+            color: #fff; /* Warna teks putih */
             font-family: Arial, sans-serif;
             flex-direction: column;
-            position: relative;
+            position: relative; /* Untuk posisi loading screen dan overlay */
         }
 
+        /* --- Loading Screen --- */
         #loading-screen {
-            position: fixed;
+            position: fixed; /* Menggunakan fixed agar selalu di atas */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #000;
+            background-color: #000; /* Tetap hitam solid untuk loading */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-            transition: opacity 1s ease-out;
+            z-index: 1000; /* Memastikan di atas semua elemen */
+            transition: opacity 1s ease-out; /* Transisi untuk menghilang */
         }
 
         #loading-text {
@@ -51,47 +52,52 @@
         #progress-bar {
             height: 100%;
             width: 0%;
-            background-color: #f00;
+            background-color: #f00; /* Warna merah untuk progress bar */
             border-radius: 5px;
-            transition: width 0.1s linear;
+            transition: width 0.1s linear; /* Animasi halus untuk progress */
         }
 
+        /* --- YouTube Video Container --- */
         #youtube-container {
-            position: absolute;
+            position: absolute; /* Untuk menutupi seluruh layar */
             top: 50%;
             left: 50%;
-            width: 100vw;
-            height: 100vh;
-            transform: translate(-50%, -50%);
-            overflow: hidden;
-            display: none;
-            z-index: 1;
+            width: 100vw; /* Lebar penuh viewport */
+            height: 100vh; /* Tinggi penuh viewport */
+            transform: translate(-50%, -50%); /* Menengahkan container */
+            overflow: hidden; /* Penting untuk cropping jika rasio aspek beda */
+            display: none; /* Video disembunyikan secara default */
+            z-index: 1; /* Di bawah loading screen dan unmute-overlay */
         }
 
         #youtube-player {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            transform: scale(1.1);
+            /* object-fit: cover akan memotong video jika rasio aspeknya berbeda dengan layar */
+            object-fit: cover; /* Memastikan video menutupi seluruh container */
+            /* Transform scale ini sering digunakan untuk menghilangkan border hitam default YouTube */
+            transform: scale(1.1); /* Sedikit zoom untuk mengisi celah atau border hitam */
         }
 
+        /* --- Unmute Overlay (Background Blur & Button) --- */
         #unmute-overlay {
-            position: fixed;
+            position: fixed; /* Menggunakan fixed agar selalu di atas */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.7); /* Latar belakang semi-transparan */
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Untuk menempatkan teks di atas tombol */
             justify-content: center;
             align-items: center;
-            z-index: 998;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+            z-index: 998; /* Di bawah loading screen, di atas video */
+            /* Properti penting untuk blur di belakang */
+            backdrop-filter: blur(10px); /* Efek blur */
+            -webkit-backdrop-filter: blur(10px); /* Untuk kompatibilitas Safari */
+            opacity: 0; /* Awalnya tersembunyi */
+            visibility: hidden; /* Awalnya tidak terlihat dan tidak bisa diinteraksi */
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out; /* Transisi untuk muncul/hilang */
         }
 
         #unmute-overlay.active {
@@ -100,27 +106,27 @@
         }
 
         #unmute-text {
-            font-size: 1.8em;
-            margin-bottom: 25px;
+            font-size: 1.8em; /* Ukuran teks lebih besar */
+            margin-bottom: 25px; /* Jarak antara teks dan tombol */
             text-align: center;
-            max-width: 80%;
+            max-width: 80%; /* Batasi lebar teks */
         }
 
         #unmute-main-button {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.1); /* Latar belakang tombol sedikit transparan */
             color: #fff;
-            border: 2px solid #fff;
-            padding: 15px 30px;
+            border: 2px solid #fff; /* Border putih */
+            padding: 15px 30px; /* Ukuran tombol lebih besar */
             cursor: pointer;
-            border-radius: 10px;
-            font-size: 1.2em;
+            border-radius: 10px; /* Sudut lebih membulat */
+            font-size: 1.2em; /* Ukuran font tombol */
             font-weight: bold;
-            transition: background-color 0.3s ease, transform 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.3s ease; /* Transisi hover */
         }
 
         #unmute-main-button:hover {
             background-color: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+            transform: scale(1.05); /* Efek membesar saat hover */
         }
     </style>
 </head>
@@ -135,7 +141,7 @@
 
     <div id="youtube-container">
         <iframe id="youtube-player"
-                src="http://www.youtube.com/embed/V6-g5eLpS7k?autoplay=0&controls=0&disablekb=1&loop=1&playlist=V6-g5eLpS7k&modestbranding=1&rel=0&mute=1&vq=hd1080"
+                src="https://www.youtube.com/embed/V6-g5eLpS7k?controls=0&autoplay=0&mute=1&loop=1&playlist=V6-g5eLpS7k&modestbranding=1&rel=0&vq=hd1080"
                 frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen>
@@ -159,10 +165,16 @@
             const unmuteText = document.getElementById('unmute-text');
             const youtubePlayer = document.getElementById('youtube-player');
 
-            // Simulate loading progress for YouTube embed
+            // --- Simulasi Progress Bar untuk Loading ---
+            // Karena kita tidak bisa langsung memantau buffer YouTube tanpa API yang lebih kompleks,
+            // kita akan mensimulasikan progress bar dari 0% ke 100%.
             let currentProgress = 0;
-            const interval = setInterval(() => {
-                currentProgress += 5; // Tambah progress
+            const intervalDuration = 100; // Update setiap 100ms
+            const progressIncrement = 5; // Tambah 5% setiap update
+            const totalLoadTime = (100 / progressIncrement) * intervalDuration; // Total waktu simulasi (2 detik)
+
+            const loadingInterval = setInterval(() => {
+                currentProgress += progressIncrement;
                 if (currentProgress > 100) {
                     currentProgress = 100;
                 }
@@ -170,35 +182,38 @@
                 progressBar.style.width = currentProgress + '%';
 
                 if (currentProgress === 100) {
-                    clearInterval(interval);
+                    clearInterval(loadingInterval);
                     hideLoadingScreenAndShowUnmuteOverlay();
                 }
-            }, 100); // Setiap 100ms tambah 5%
+            }, intervalDuration);
 
-            // Fungsi: Sembunyikan loading dan tampilkan overlay unmute
+            // --- Fungsi untuk Menyembunyikan Loading dan Menampilkan Overlay Unmute ---
             function hideLoadingScreenAndShowUnmuteOverlay() {
-                loadingScreen.style.opacity = '0';
+                loadingScreen.style.opacity = '0'; // Mulai transisi fade out loading screen
                 setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                    youtubeContainer.style.display = 'block'; // Tampilkan container YouTube
+                    loadingScreen.style.display = 'none'; // Sembunyikan setelah transisi
+                    youtubeContainer.style.display = 'block'; // Tampilkan container YouTube (video masih paused/muted)
                     
                     // Aktifkan overlay blur setelah YouTube ditampilkan
-                    unmuteOverlay.classList.add('active');
-                }, 1000); // Waktu yang sama dengan transisi CSS loading screen
+                    unmuteOverlay.classList.add('active'); // Tambah kelas 'active' untuk menampilkan overlay dengan transisi
+                }, 1000); // Waktu yang sama dengan transisi CSS loading screen (1 detik)
             }
 
-            // Event listener untuk tombol utama di overlay
+            // --- Event Listener untuk Tombol Utama di Overlay ---
             unmuteMainButton.addEventListener('click', function() {
                 // Sembunyikan overlay
-                unmuteOverlay.classList.remove('active');
+                unmuteOverlay.classList.remove('active'); // Hapus kelas 'active' untuk memulai transisi fade out
                 setTimeout(() => {
-                    unmuteOverlay.style.display = 'none';
-                }, 500); // Sesuai dengan transisi opacity overlay
+                    unmuteOverlay.style.display = 'none'; // Sembunyikan sepenuhnya setelah transisi
+                }, 500); // Sesuai dengan transisi opacity overlay (0.5 detik)
 
                 // Ubah src iframe untuk unmute, autoplay, dan meminta kualitas HD
                 let currentSrc = youtubePlayer.src;
-                // Pastikan mute=0 dan autoplay=1
+                
+                // Pastikan parameter yang diperlukan ada dan benar untuk pemutaran
+                // Lepas mute
                 currentSrc = currentSrc.replace('mute=1', 'mute=0');
+                // Aktifkan autoplay
                 if (!currentSrc.includes('autoplay=1')) {
                     currentSrc += '&autoplay=1';
                 }
@@ -209,7 +224,7 @@
                     currentSrc = currentSrc.replace(/vq=.*?(&|$)/, 'vq=hd1080$1');
                 }
                 
-                youtubePlayer.src = currentSrc; // Reload iframe dengan unmute dan autoplay
+                youtubePlayer.src = currentSrc; // Muat ulang iframe dengan parameter baru (akan mulai putar)
             });
         });
     </script>
